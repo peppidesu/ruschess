@@ -1,14 +1,11 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#[macro_use]
+mod macros;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod piece;
+mod board;
+mod state;
+mod moves;
+mod position;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+
+

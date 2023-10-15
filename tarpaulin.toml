@@ -1,0 +1,5 @@
+[make-lcov]
+run-types = ["Tests"]
+out = ["Lcov"]
+engine = "Ptrace"
+output-dir = "./.coverage"
