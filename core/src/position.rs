@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Position {
     data: u8,
 }
@@ -26,6 +26,11 @@ impl Position {
     #[inline]
     pub fn file(&self) -> u8 {
         self.data & 0b00000111
+    }
+}
+impl From<Position> for (u8, u8) {
+    fn from(position: Position) -> Self {
+        (position.data >> 3, position.data & 0b00000111)
     }
 }
 
@@ -84,13 +89,19 @@ impl From<u8> for Position {
         Self { data: value }
     }
 }
-impl std::fmt::Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let file = (self.file() + ('a' as u8)) as char;
-        let rank = (self.rank() + ('1' as u8)) as char;
-        write!(f, "{}{}", file, rank)
+impl ToString for Position {
+    fn to_string(&self) -> String {        
+        let file = ((self.data & 0b00000111) + ('a' as u8)) as char;
+        let rank = ((self.rank() >> 3) + ('1' as u8)) as char;
+        format!("{}{}", file, rank)
     }
 }
+impl std::fmt::Debug for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_string())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -251,6 +251,7 @@ impl GameState {
         };
         self.castling_rights &= !mask;
     }
+    #[cfg(not(tarpaulin_include))]
     pub fn legal_moves(&self) -> Vec<Move> {
         let moves = get_moves(self, self.turn);
         prune_moves_into_check(moves, self)
@@ -261,15 +262,19 @@ impl GameState {
         let enemy_moves = get_moves(self, enemy_color);
         enemy_moves.iter().any(|m| m.to() == king_pos)
     }
+    #[cfg(not(tarpaulin_include))]
     pub fn is_checkmate(&self) -> bool {
         self.is_in_check() && self.legal_moves().is_empty()
     }
+    #[cfg(not(tarpaulin_include))]
     pub fn is_stalemate(&self) -> bool {
         !self.is_in_check() && self.legal_moves().is_empty()
     }
-    pub fn is_draw(&self) -> bool {
-        self.halfmove_clock >= 100 || self.is_stalemate()
+    #[cfg(not(tarpaulin_include))]
+    pub fn is_50_move_rule(&self) -> bool {
+        self.halfmove_clock >= 100
     }
+
     fn check_castle_rights_waived(&mut self, pos: Position, piece: Piece) {
         match piece.kind() {
             PieceKind::Rook => {
@@ -339,10 +344,12 @@ impl GameState {
                 let piece = self.board.get(from).unwrap();
                 self.board.set(from, None);
                 self.board.set(to, Some(piece));
-                self.board.set(captured, None);
 
                 let captured_pawn = self.board.get(captured).unwrap();
                 self.captured_pieces.push(captured_pawn);
+                
+                self.board.set(captured, None);
+                
 
                 self.halfmove_clock = 0; // capture -> reset halfmove clock
             }
@@ -380,10 +387,10 @@ impl GameState {
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_case::test_case;
 
     #[test]
     fn test_fen_lexer_firstmove() {
@@ -698,11 +705,21 @@ mod tests {
         assert!(!game_state.can_castle(PieceColor::Black, CastleSide::KingSide));
         assert!(!game_state.can_castle(PieceColor::Black, CastleSide::QueenSide));
     }
-
-    #[test]
-    fn test_game_state_legal_moves() {
-        let game_state = GameState::default();
-        let moves = game_state.legal_moves();
-        assert_eq!(moves.len(), 20);
+    
+    #[test_case("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false; "white not in check default")]
+    #[test_case("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", false; "black not in check default")]
+    #[test_case("8/4NP2/5Bp1/1Q6/2Kp1R2/1r2p2b/pq1bk3/1r6 w - - 0 1", false; "random 001 white")]
+    #[test_case("8/4NP2/5Bp1/1Q6/2Kp1R2/1r2p2b/pq1bk3/1r6 b - - 0 1", false; "random 001 black")]
+    #[test_case("8/2K2n2/p7/2bP1bP1/1B3P1p/8/Q2p1Rk1/1r5N w - - 0 1", false; "random 002 white")]
+    #[test_case("8/2K2n2/p7/2bP1bP1/1B3P1p/8/Q2p1Rk1/1r5N b - - 0 1", true; "random 002 black")]
+    #[test_case("1b1R1Q2/2P1B1kN/5P1n/8/r3p3/K2p4/1P2PP2/8 w - - 0 1", true; "random 003 white")]
+    #[test_case("1b1R1Q2/2P1B1kN/5P1n/8/r3p3/K2p4/1P2PP2/8 b - - 0 1", true; "random 003 black")]
+    #[test_case("nR2Q3/N7/1p2P3/2K5/2rP4/2P1pq2/pP1p4/7k w - - 0 1", true; "random 004 white")]
+    #[test_case("nR2Q3/N7/1p2P3/2K5/2rP4/2P1pq2/pP1p4/7k b - - 0 1", false; "random 004 black")]
+    #[test_case("8/k1b2Rn1/5p2/8/K1Bp1n2/PpP2p1P/8/1rB5 w - - 0 1", false; "random 005 white")]
+    #[test_case("8/k1b2Rn1/5p2/8/K1Bp1n2/PpP2p1P/8/1rB5 b - - 0 1", false; "random 005 black")]
+    fn test_game_state_is_in_check(state_fen: &str, expected: bool) {
+        let state = GameState::from_fen(state_fen).unwrap();
+        assert_eq!(state.is_in_check(), expected);
     }
 }

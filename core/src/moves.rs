@@ -126,10 +126,10 @@ fn make_bischop_moves(center: Position, state: &GameState, color: PieceColor) ->
     let mut moves = Vec::new();
     let center_flat = u8::from(center);
 
-    let tl_steps = center.rank().min(center.file());
-    let tr_steps = center.rank().min(7 - center.file());
-    let bl_steps = (7 - center.rank()).min(center.file());
-    let br_steps = (7 - center.rank()).min(7 - center.file());
+    let tl_steps = u8::min(center.rank(),     center.file());
+    let tr_steps = u8::min(center.rank(),     7 - center.file());
+    let bl_steps = u8::min(7 - center.rank(), center.file());
+    let br_steps = u8::min(7 - center.rank(), 7 - center.file());
 
     for i in 1..=tl_steps {
         if add_move_if_valid(
@@ -534,12 +534,12 @@ pub fn prune_moves_into_check(mut moves: Vec<Move>, state: &GameState) -> Vec<Mo
     let mut i = 0;
     while i < moves.len() {
         if let Move::Castle { rook_to, .. } = moves[i] {
-            if state.is_in_check()
-                || get_moves(state, state.turn.opposite())
-                    .iter()
-                    .any(|m| m.to() == rook_to)
+            if state.is_in_check() || get_moves(state, state.turn.opposite())
+                                        .iter()
+                                        .any(|m| m.to() == rook_to)
             {
                 moves.remove(i);
+                continue;
             } else {
                 i += 1;
             }
@@ -589,6 +589,8 @@ mod tests {
     use crate::piece::Piece;
     use crate::position::Position;
     use crate::state::GameState;
+    use test_case::test_case;
+    use devutil::VecAsserts;
 
     #[test]
     fn test_get_moves_pawn_pushes() {
@@ -599,7 +601,7 @@ mod tests {
         );
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(1, 0),
             to: Position::new(2, 0)
@@ -646,7 +648,7 @@ mod tests {
 
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 3);
+        moves.assert_len(3);
         assert!(moves.contains(&Move::Capture {
             from: Position::new(4, 2),
             to: Position::new(5, 1),
@@ -674,7 +676,7 @@ mod tests {
 
         let state = GameState::new(board, PieceColor::Black, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::Black);
-        assert_eq!(moves.len(), 3);
+        moves.assert_len(3);
         assert!(moves.contains(&Move::Capture {
             from: Position::new(4, 2),
             to: Position::new(3, 1),
@@ -708,7 +710,7 @@ mod tests {
             0,
         );
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(4, 2),
             to: Position::new(5, 2)
@@ -739,7 +741,7 @@ mod tests {
             0,
         );
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(4, 2),
             to: Position::new(5, 2)
@@ -770,7 +772,7 @@ mod tests {
             0,
         );
         let moves = get_moves(&state, PieceColor::Black);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(4, 2),
             to: Position::new(3, 2)
@@ -801,7 +803,7 @@ mod tests {
             0,
         );
         let moves = get_moves(&state, PieceColor::Black);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(4, 2),
             to: Position::new(3, 2)
@@ -822,7 +824,7 @@ mod tests {
         );
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 4);
+        moves.assert_len(4);
         assert!(moves.contains(&Move::Promotion {
             from: Position::new(6, 0),
             to: Position::new(7, 0),
@@ -862,7 +864,7 @@ mod tests {
         );
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 12);
+        moves.assert_len(12);
 
         assert!(moves.contains(&Move::Promotion {
             from: Position::new(6, 1),
@@ -950,7 +952,7 @@ mod tests {
 
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(4, 0),
             to: Position::new(5, 0)
@@ -973,7 +975,7 @@ mod tests {
 
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 2);
+        moves.assert_len(2);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(4, 7),
             to: Position::new(5, 7)
@@ -1003,7 +1005,7 @@ mod tests {
 
         let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
         let moves = get_moves(&state, PieceColor::White);
-        assert_eq!(moves.len(), 4);
+        moves.assert_len(4);
         assert!(moves.contains(&Move::Normal {
             from: Position::new(1, 1),
             to: Position::new(2, 1)
@@ -1023,5 +1025,705 @@ mod tests {
             to: Position::new(2, 2),
             captured: Piece::new(PieceKind::Pawn, PieceColor::Black)
         }));
+    } 
+
+    #[test_case(Position::new(0, 0), 7)]
+    #[test_case(Position::new(1, 1), 9)]
+    #[test_case(Position::new(2, 2), 11)]
+    #[test_case(Position::new(3, 3), 13)]
+    fn test_get_moves_bishop_layout(position: Position, expected_count: usize) {        
+        let mut board = Board::empty();
+        board.set(
+            position,
+            Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+        );
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves(&state, PieceColor::White);   
+        assert_eq!(moves.len(), expected_count);
+
+        moves.assert_forall(|m| m.from() == position);   
+        moves.assert_forall(|m| m.to() != position);     
+        moves.assert_forall(|m| 
+            u8::abs_diff(m.from().rank(), m.to().rank()) 
+            == u8::abs_diff(m.from().file(), m.to().file())
+        );
+    }    
+
+    #[test]
+    fn test_get_moves_bishop_captures() {
+        let mut board = Board::empty();
+        
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves(&state, PieceColor::White);
+        assert_eq!(moves.len(), 4);
+        moves.assert_forall(|m| matches!(m, Move::Capture{..}));
+        moves.assert_forall(
+            |m| u8::abs_diff(m.from().rank(), m.to().rank()) == 1
+        );
+        moves.assert_forall(
+            |m| u8::abs_diff(m.from().file(), m.to().file()) == 1
+        );
     }
+
+    #[test]    
+    fn test_get_moves_bishop_blocked() {
+        let mut board = Board::empty();
+        
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves_for_square(
+            board.get(Position::new(4, 4)),
+            Position::new(4, 4),
+            &state,
+            PieceColor::White
+        );
+        moves.assert_empty();
+    }
+
+    #[test_case(Position::new(0, 0))]
+    #[test_case(Position::new(4, 4))]
+    #[test_case(Position::new(7, 7))]
+    fn test_get_moves_rook_layout(position: Position) {        
+        let mut board = Board::empty();
+        board.set(
+            position,
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves(&state, PieceColor::White);   
+        
+        moves.assert_len(14);
+        moves.assert_forall(|m| m.from() == position);
+        moves.assert_forall(|m| m.to() != position);
+        moves.assert_forall(|m| 
+            m.from().rank() == m.to().rank() || m.from().file() == m.to().file()
+        );
+    }
+
+    #[test]
+    fn test_get_moves_rook_captures() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves(&state, PieceColor::White);
+        moves.assert_len(4);
+        moves.assert_forall(|m| matches!(m, Move::Capture{..}));        
+        moves.assert_forall(
+            |m| m.from().rank() == m.to().rank() || m.from().file() == m.to().file()
+        );
+    }
+
+    #[test]
+    fn test_get_moves_rook_blocked() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves_for_square(
+            board.get(Position::new(4, 4)),
+            Position::new(4, 4),
+            &state,
+            PieceColor::White
+        );
+        moves.assert_empty();
+    }
+
+    #[test_case(Position::new(0, 0), 2)]
+    #[test_case(Position::new(0, 7), 2)]
+    #[test_case(Position::new(7, 0), 2)]
+    #[test_case(Position::new(7, 7), 2)]
+    #[test_case(Position::new(0, 1), 3)]
+    #[test_case(Position::new(1, 1), 4)]
+    #[test_case(Position::new(0, 2), 4)]
+    #[test_case(Position::new(1, 2), 6)]
+    #[test_case(Position::new(2, 2), 8)]    
+
+    fn test_get_moves_knight_layout(position: Position, expected_count: usize) {        
+        let mut board = Board::empty();
+        board.set(
+            position,
+            Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves(&state, PieceColor::White);   
+        
+        moves.assert_len(expected_count);
+        moves.assert_forall(|m| m.from() == position);
+        moves.assert_forall(|m| m.to() != position);
+        moves.assert_forall(|m| 
+            (u8::abs_diff(m.from().rank(), m.to().rank()) == 2 
+                && u8::abs_diff(m.from().file(), m.to().file()) == 1) 
+            || (u8::abs_diff(m.from().rank(), m.to().rank()) == 1 
+                && u8::abs_diff(m.from().file(), m.to().file()) == 2)
+        );
+    }
+    
+    #[test_case(Position::new(0, 0), 3)]
+    #[test_case(Position::new(0, 7), 3)]
+    #[test_case(Position::new(7, 0), 3)]
+    #[test_case(Position::new(7, 7), 3)]
+    #[test_case(Position::new(0, 3), 5)]
+    #[test_case(Position::new(3, 3), 8)]
+    fn test_get_moves_king_layout(position: Position, expected_count: usize) {        
+        let mut board = Board::empty();
+        board.set(
+            position,
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        let moves = get_moves(&state, PieceColor::White);   
+        
+        moves.assert_len(expected_count);
+        moves.assert_forall(|m| m.from() == position);
+        moves.assert_forall(|m| m.to() != position);
+        moves.assert_forall(|m| 
+            u8::abs_diff(m.from().rank(), m.to().rank()) <= 1 
+            && u8::abs_diff(m.from().file(), m.to().file()) <= 1
+        );
+    }
+
+    #[test]
+    fn test_get_moves_king_captures() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+
+        let moves = get_moves(&state, PieceColor::White);
+        moves.assert_len(8);
+        moves.assert_forall(|m| matches!(m, Move::Capture{..}));
+        moves.assert_forall(|m| 
+            u8::abs_diff(m.from().rank(), m.to().rank()) <= 1 
+            && u8::abs_diff(m.from().file(), m.to().file()) <= 1
+        );
+    }
+
+    #[test]
+    fn test_get_moves_king_blocked() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+
+        let moves = get_moves_for_square(
+            board.get(Position::new(4, 4)),
+            Position::new(4, 4),
+            &state,
+            PieceColor::White
+        );
+        moves.assert_empty();
+    }
+
+    #[test]
+    fn test_get_moves_castle_moves() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b1111, None, 0, 0);
+
+        let moves = get_moves(&state, PieceColor::White);
+        let castle_moves = moves.into_iter()
+                            .filter(|m| matches!(m, Move::Castle{..}))
+                            .collect::<Vec<_>>();
+        
+        castle_moves.assert_len(2);
+        assert!(castle_moves.contains(&Move::Castle {
+            from: Position::new(0, 4),
+            to: Position::new(0, 2),
+            rook_from: Position::new(0, 0),
+            rook_to: Position::new(0, 3)
+        }));
+        assert!(castle_moves.contains(&Move::Castle {
+            from: Position::new(0, 4),
+            to: Position::new(0, 6),
+            rook_from: Position::new(0, 7),
+            rook_to: Position::new(0, 5)
+        }));
+    }
+
+    #[test]
+    fn test_get_moves_castle_moves_require_rights() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+
+        let moves = get_moves(&state, PieceColor::White);
+        let castle_moves = moves.into_iter()
+                            .filter(|m| matches!(m, Move::Castle{..}))
+                            .collect::<Vec<_>>();
+        
+        castle_moves.assert_empty();
+    }
+
+    #[test]
+    fn test_get_moves_castle_moves_blocked() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 1),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        
+        let state = GameState::new(board, PieceColor::White, 0b1111, None, 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let castle_moves = moves.into_iter()
+                            .filter(|m| matches!(m, Move::Castle{..}))
+                            .collect::<Vec<_>>();
+        
+        castle_moves.assert_empty();
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_force_escape() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(3, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(3, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 5),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(1, 1),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+        moves.assert_len(5);
+        moves.assert_forall(|m| matches!(m, Move::Capture{ .. }));
+        moves.assert_forall(|m| m.from() == Position::new(4, 4));        
+    }
+    
+    #[test]
+    fn test_prune_moves_into_check_force_block() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 1),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(1, 0),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+
+        moves.assert_len(1);
+        moves.assert_forall(|m| matches!(m, Move::Normal{..}));
+        moves.assert_forall(|m| m.from() == Position::new(0, 1));
+        moves.assert_forall(|m| m.to() == Position::new(1, 1));
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_pin_move() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 1),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(1, 1),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 4),
+            Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+
+        moves.assert_len(1);
+        moves.assert_forall(|m| matches!(m, Move::Normal{..}));
+        moves.assert_forall(|m| m.from() == Position::new(0, 0));
+        moves.assert_forall(|m| m.to() == Position::new(1, 0));
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_en_passant_exposing_capture() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 0),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 1),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(4, 2),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(4, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b0000, Some(Position::new(5, 2)), 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+        println!("{:?}", moves);        
+        moves.assert_len(4);
+        moves.assert_forall(|m| !matches!(m, Move::EnPassant{..}));
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_king_into_check() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 1),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+        
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+
+        moves.assert_len(5);
+        moves.assert_forall(|m| m.to().rank() != 5);
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_king_capture_into_check() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(4, 3),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(5, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 0),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(5, 3),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+        );
+        
+        let state = GameState::new(board, PieceColor::White, 0b0000, None, 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);        
+        moves.assert_len(3);
+        moves.assert_forall(|m| m.to().rank() != 5);
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_castle_through_check() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(1, 4),
+            Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+        );
+        board.set(
+            Position::new(7, 3),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+        board.set(
+            Position::new(7, 5),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b1100, None, 0, 0);
+        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+        
+        moves.assert_forall(|m| !matches!(m, Move::Castle{..}));
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_castle_out_of_check() {
+        let mut board = Board::empty();
+        board.set(
+            Position::new(0, 4),
+            Some(Piece::new(PieceKind::King, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 0),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(0, 7),
+            Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+        );
+        board.set(
+            Position::new(7, 4),
+            Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+        );
+
+        let state = GameState::new(board, PieceColor::White, 0b1100, None, 0, 0);        
+        let moves = get_moves(&state, PieceColor::White);
+        let moves = prune_moves_into_check(moves, &state);
+        
+        moves.assert_forall(|m| !matches!(m, Move::Castle{..}));
+    }
+
+    #[test]
+    fn test_prune_moves_into_check_prevent_castle_into_check() {
+        let mut board = Board::empty();
+    }
+
 }

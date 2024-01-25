@@ -1,4 +1,4 @@
 cargo tarpaulin
-rm ./*.profraw > /dev/null 2>&1
-rm ./app/*.profraw > /dev/null 2>&1
-rm ./core/*.profraw > /dev/null 2>&1
+rm -f ./*.profraw
+rm -f ./app/*.profraw 
+rm -f ./core/*.profraw
